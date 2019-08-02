@@ -1,0 +1,21 @@
+$zipPath = "c:\other.zip"
+Read-S3Object -BucketName {0} -Key {1} -File $zipPath
+$extractPath = "c:\"+(Get-Date -UFormat "%Y%m%d%H%M")
+icacls $zipPath /grant bsadmin:F /T
+Add-Type -assembly "system.io.compression.filesystem"
+[io.compression.zipfile]::ExtractToDirectory($zipPath, $extractPath)
+Remove-Item $zipPath -recurse
+
+$filePath = (Get-Content $extractPath\updatespec.json -Raw) | ConvertFrom-Json
+
+foreach ($file in $filePath.files)
+{
+    $source = $file.source
+    $destination=$file.destination
+    if(test-path -path $file.destination)
+    {
+        Copy-Item -Path $extractPath\source\$source -Recurse -Destination $destination
+    }
+}
+
+Remove-Item $extractPath -recurse
